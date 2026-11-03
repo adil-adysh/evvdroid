@@ -29,6 +29,11 @@ class EvvTtsService : TextToSpeechService() {
 	@Volatile
 	private var utterance = 0
 
+	/** Set when the held instance has gone quiet, so that the next utterance
+	 *  replaces it instead of being handed to it. */
+	@Volatile
+	private var mute = false
+
 	private var appliedRevision = -1
 
 	private data class LoadedDictState(val path: String, val lastModified: Long, val length: Long)
@@ -125,8 +130,10 @@ class EvvTtsService : TextToSpeechService() {
 
 	private fun ensureEngine(language: Int): EvvEngine? {
 		val held = engine
-		if (held != null && held.language == language) return held
+		if (held != null && !mute && held.language == language) return held
+		if (mute) Log.w(TAG, "the instance went quiet, so this is a new one")
 		held?.close()
+		mute = false
 		loadedDictStates = emptyMap()
 		lastEmojiModified = -1L
 		lastEmojiLength = -1L
@@ -332,6 +339,16 @@ class EvvTtsService : TextToSpeechService() {
 		Log.i(TAG, "#$id finished, handed ${pace.handedMs()}ms began=${opening.began}")
 		if (!opening.began && !stopped) {
 			Log.w(TAG, "#$id the engine said nothing for: ${text.take(200)}")
+			// An instance that has gone quiet does not come back. It goes on
+			// taking text and answering success, and hands over no samples from
+			// that moment for the life of the process. The one seen doing it was
+			// a message the engine's own guards dropped -- see TextFixes for the
+			// shape -- after which it said nothing at all, on a fresh instance as
+			// much as an old one. Nothing the service can ask tells a quiet
+			// instance from a working one, so it is replaced rather than trusted,
+			// which costs this utterance rather than every one after it.
+			mute = true
+			appliedRevision = -1
 			opening.open()
 		}
 		if (opening.began) callback.done()
