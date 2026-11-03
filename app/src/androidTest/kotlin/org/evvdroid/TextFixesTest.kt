@@ -24,6 +24,24 @@ class TextFixesTest {
 		assertEquals("win 10", TextFixes.apply("win10"))
 	}
 
+	/** The dot of an abbreviation against a number: the engine is silent from
+	 *  that word to the end of the message where the number is a whole ten
+	 *  thousand, and one space gets it spoken. */
+	@Test
+	fun aNumberAfterADotGetsASpace() {
+		assertEquals("Rs. 10000.00 is processed", TextFixes.apply("Rs.10000.00 is processed"))
+		assertEquals("Rs. 20000", TextFixes.apply("Rs.20000"))
+		assertEquals("No. 5", TextFixes.apply("No.5"))
+	}
+
+	/** A decimal point follows a digit rather than a word, and the engine says
+	 *  those the same either way. */
+	@Test
+	fun aDecimalIsLeftAlone() {
+		assertEquals("277.317 units", TextFixes.apply("277.317 units"))
+		assertEquals("NAV 36.058 dated", TextFixes.apply("NAV 36.058 dated"))
+	}
+
 	/** The other way round is right already and gets worse when split. */
 	@Test
 	fun aLetterAfterADigitIsLeftAlone() {

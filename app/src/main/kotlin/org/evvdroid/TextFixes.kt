@@ -28,6 +28,7 @@ object TextFixes {
 		if (text.isEmpty()) return text
 		var out = text
 		out = BEFORE_A_DIGIT.replace(out, "$1 $2")
+		out = DOT_AGAINST_A_NUMBER.replace(out, "$1. $2")
 		out = BEFORE_AN_OPENER.replace(out, "$1 $2")
 		out = LOOSE_S_SUFFIX.replace(out, "$1$2")
 		out = SPACE_BEFORE_A_MARK.replace(out, "$1$2")
@@ -42,6 +43,21 @@ object TextFixes {
 	 *  Digits against letters are left alone: 1st is right already and gets
 	 *  worse when split. */
 	private val BEFORE_A_DIGIT = Regex("""([A-Za-z])(\d)""")
+
+	/** A word's full stop against the number after it. This one costs more than
+	 *  a spelling out: where the number is a whole ten thousand the engine says
+	 *  nothing at all -- "Rs.10000.00" came back silent, and "Rs. 10000.00" with
+	 *  one space after the dot speaks -- and a message with one in it is lost
+	 *  from that word to its end. Measured on the engine at the sample rate the
+	 *  phone uses: Rs.10000, Rs.20000, Rs.100000, Rs.1000000 and Rs.10000.00 are
+	 *  silent, where Rs.12000, Rs.11000, Rs.12300, Rs.12345, Rs.1000 and
+	 *  "Rs. 10000.00" all speak. It is the round ten thousand rather than the
+	 *  digit count, and the space is what gets them spoken. It changes nothing
+	 *  that is said.
+	 *
+	 *  A decimal point is not this: there the dot follows a digit, and every
+	 *  one of those measures the same written either way. */
+	private val DOT_AGAINST_A_NUMBER = Regex("""([A-Za-z])\.(\d)""")
 
 	/** The marks the engine starts spelling in front of. Closing brackets are
 	 *  deliberately absent: "abc)" already costs no more than "abc", while
